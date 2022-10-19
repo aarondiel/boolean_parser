@@ -5,7 +5,8 @@ fn eval(expression: parser::Node) -> bool {
     return match expression {
         parser::Node::Boolean(value) => value,
         parser::Node::And(left, right) => eval(*left) && eval(*right),
-        parser::Node::Or(left, right) => eval(*left) || eval(*right)
+        parser::Node::Or(left, right) => eval(*left) || eval(*right),
+        parser::Node::Not(node) => !eval(*node)
     };
 }
 

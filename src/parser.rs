@@ -4,7 +4,8 @@ use crate::tokenizer::{ Tokenizer, Token };
 pub enum Node {
     Boolean(bool),
     Or(Box<Node>, Box<Node>),
-    And(Box<Node>, Box<Node>)
+    And(Box<Node>, Box<Node>),
+    Not(Box<Node>)
 }
 
 pub struct Parser<'a> {
@@ -31,8 +32,24 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self, binding_power: u8) -> Option<Node> {
-        let mut left = self.atom()
+        let token = self.next()
             .expect("unexpected end of file");
+
+        let mut left = match &token {
+            Token::True => Node::Boolean(true),
+            Token::False => Node::Boolean(false),
+            Token::Not => {
+                let precedence = Self::get_prefix_precedence(&token)
+                    .expect("get prefix precedence failed");
+
+                let right = self.expression(precedence)
+                    .expect("unexpected token");
+
+                Node::Not(Box::new(right))
+            },
+
+            _ => panic!("unexpected token")
+        };
 
         loop {
             self.whitespace();
@@ -66,23 +83,6 @@ impl<'a> Parser<'a> {
         return Some(left);
     }
 
-    fn atom(&mut self) -> Option<Node> {
-        let token = self.peek()
-            .expect("unexpected end of file");
-
-        let node = match token {
-            Token::True => Some(Node::Boolean(true)),
-            Token::False => Some(Node::Boolean(false)),
-            _ => None
-        };
-
-        if node.is_some() {
-            self.next();
-        }
-
-        return node;
-    }
-
     fn whitespace(&mut self) {
         if self.peek() != Some(Token::Whitespace) {
             return;
@@ -103,6 +103,13 @@ impl<'a> Parser<'a> {
         return self.peeked
             .get_or_insert_with(|| self.tokens.next())
             .clone();
+    }
+
+    fn get_prefix_precedence(operator: &Token) -> Option<u8> {
+        return match operator {
+            Token::Not => Some(5),
+            _ => None
+        }
     }
 
     fn get_operator_precedence(operator: &Token) -> Option<(u8, u8)> {
