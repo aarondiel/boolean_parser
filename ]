@@ -1,0 +1,95 @@
+use regex::Regex;
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Token {
+    Whitespace,
+    And,
+    Or,
+    Not,
+    True,
+    False,
+    Variable(String)
+}
+
+struct Definitions {
+    whitespace: Regex,
+    and: Regex,
+    or: Regex,
+    not: Regex,
+    truthy: Regex,
+    falsy: Regex,
+    variable: Regex
+}
+
+pub struct Tokenizer<'a> {
+    input: &'a str,
+    definitions: Definitions
+}
+
+impl<'a> Tokenizer<'a> {
+    pub fn new(input: &'a str) -> Self {
+        let definitions = Definitions {
+            whitespace: Regex::new(r"^\s+")
+                .expect("invalid whitespace regex"),
+
+            and: Regex::new(r"^(and | [*∧] | &{1,2})")
+                .expect("invalid and regex"),
+
+            or: Regex::new(r"^(or | [+∨] | \|{1,2})")
+                .expect("invalid or regex"),
+
+            not: Regex::new(r"^(not | [!¬])")
+                .expect("invalid not regex"),
+
+            truthy: Regex::new(r"^(1|true)")
+                .expect("invalid truthy regex"),
+
+            falsy: Regex::new(r"^(0|false)")
+                .expect("invalid falsy regex"),
+
+            variable: Regex::new(r"^[^*∧+∨!¬\s]+")
+                .expect("invalid variable regex")
+
+        };
+
+        return Self { input, definitions }
+    }
+
+    fn shift_input(&mut self, indicies: usize) {
+        self.input = &self.input[indicies..];
+    }
+
+    fn get_slice(&mut self, indicies: usize) -> String {
+        let value = String::from(&self.input[0..indicies]);
+        self.shift_input(indicies);
+        return value;
+    }
+}
+
+impl Iterator for Tokenizer<'_> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(captures) = self.definitions.whitespace.captures(self.input) {
+            self.shift_input(captures[0].len());
+            return Some(Token::Whitespace);
+        }
+
+        if let Some(captures) = self.definitions.and.captures(self.input) {
+            self.shift_input(captures[0].len());
+            return Some(Token::And);
+        }
+
+        if let Some(captures) = self.definitions.or.captures(self.input) {
+            self.shift_input(captures[0].len());
+            return Some(Token::Or);
+        }
+
+        if let Some(captures) = self.definitions.not.captures(self.input) {
+            self.shift_input(captures[0].len());
+            return Some(Token::Not);
+        }
+
+        return None
+    }
+}

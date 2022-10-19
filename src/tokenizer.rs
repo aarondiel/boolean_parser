@@ -1,66 +1,75 @@
+use regex::Regex;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Whitespace,
     And,
     Or,
     Not,
-    Variable(String),
     True,
-    False
+    False,
+    Variable(String)
+}
+
+struct Definitions {
+    whitespace: Regex,
+    and: Regex,
+    or: Regex,
+    not: Regex,
+    truthy: Regex,
+    falsy: Regex,
+    variable: Regex
 }
 
 pub struct Tokenizer<'a> {
-    input: &'a str
+    input: &'a str,
+    definitions: Definitions
 }
 
 impl<'a> Tokenizer<'a> {
     pub fn new(input: &'a str) -> Self {
-        return Self { input }
+        let definitions = Definitions {
+            whitespace: Regex::new(r"^\s+")
+                .expect("invalid whitespace regex"),
+
+            and: Regex::new(r"^(and|[*∧]|\&{1,2})")
+                .expect("invalid and regex"),
+
+            or: Regex::new(r"^(or|[+∨]|\|{1,2})")
+                .expect("invalid or regex"),
+
+            not: Regex::new(r"^(not|[!¬])")
+                .expect("invalid not regex"),
+
+            truthy: Regex::new(r"^(1|true)")
+                .expect("invalid truthy regex"),
+
+            falsy: Regex::new(r"^(0|false)")
+                .expect("invalid falsy regex"),
+
+            variable: Regex::new(r"^[^*∧+∨!¬\s]+")
+                .expect("invalid variable regex")
+
+        };
+
+        return Self { input, definitions }
     }
 
-    fn get_char_type(character: char) -> Option<Token> {
-        match character {
-            ' ' | '\t' => Some(Token::Whitespace),
-            '*' => Some(Token::And),
-            '+' => Some(Token::Or),
-            '!' => Some(Token::Not),
-            '1' => Some(Token::True),
-            '0' => Some(Token::False),
-            _ => None
-        }
+    // parses all tokens except Token::Variable
+    fn get_token(&self, regex: &Regex, token: Token) -> Option<(usize, Token)> {
+        return regex.captures(self.input)
+            .and_then(|captures| Some((captures[0].len(), token)));
     }
 
-    fn get_whitespace_token(&mut self) -> Option<Token> {
-        let length = self.input
-            .chars()
-            .map(Self::get_char_type)
-            .take_while(|token_type| *token_type == Some(Token::Whitespace))
-            .count();
+    // parse variabel token
+    fn get_var(&self) -> Option<(usize, Token)> {
+        return self.definitions.variable.captures(self.input)
+            .and_then(|captures| {
+                let length = captures[0].len();
+                let value = Token::Variable(String::from(&self.input[0..length]));
 
-        if length == 0 {
-            return None;
-        }
-
-        self.input = &self.input[length..];
-
-        return Some(Token::Whitespace);
-    }
-
-    fn get_text_token(&mut self) -> Option<Token> {
-        let length = self.input
-            .chars()
-            .map(Self::get_char_type)
-            .take_while(|token_type| token_type.is_none())
-            .count();
-
-        if length == 0 {
-            return None;
-        }
-
-        let value = String::from(&self.input[0..length]);
-        self.input = &self.input[length..];
-
-        return Some(Token::Variable(value));
+                return Some((length, value))
+            });
     }
 }
 
@@ -68,31 +77,17 @@ impl Iterator for Tokenizer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let token = match self.input.chars().next() {
-            None => return None,
-            Some(character) => Self::get_char_type(character)
-        };
-
-        if let Some(single_token) = &token {
-            if *single_token == Token::Whitespace {
-                return self.get_whitespace_token();
-            }
-
-            self.input = &self.input[1..];
-            return token;
-        }
-
-        let token = self.get_text_token()
-            .expect("get_text_token should not return empty");
-
-        if let Token::Variable(name) = &token {
-            match name.as_str() {
-                "true" => return Some(Token::True),
-                "false" => return Some(Token::False),
-                _ => {}
-            };
-        }
-
-        return Some(token);
+        return self.get_token(&self.definitions.whitespace, Token::Whitespace)
+            .or(self.get_token(&self.definitions.and, Token::And))
+            .or(self.get_token(&self.definitions.or, Token::Or))
+            .or(self.get_token(&self.definitions.not, Token::Not))
+            .or(self.get_token(&self.definitions.truthy, Token::True))
+            .or(self.get_token(&self.definitions.falsy, Token::False))
+            .or(self.get_token(&self.definitions.falsy, Token::False))
+            .or(self.get_var())
+            .and_then(|(length, token)| {
+                self.input = &self.input[length..];
+                return Some(token);
+            })
     }
 }

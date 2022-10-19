@@ -9,7 +9,7 @@ this is just meant as a practice and should not be concidered a serious project
 
 ## todo
 
-- [ ] unicode characters for **'∧' '∨' '¬'**
+- [x] unicode characters for **'∧' '∨' '¬'**
 - [ ] brackets **()**
 - [ ] variables
 
