@@ -39,6 +39,8 @@ impl<'a> Parser<'a> {
             Token::True => Node::Boolean(true),
             Token::False => Node::Boolean(false),
             Token::Not => {
+                self.whitespace();
+
                 let precedence = Self::get_prefix_precedence(&token)
                     .expect("get prefix precedence failed");
 
@@ -49,6 +51,8 @@ impl<'a> Parser<'a> {
             },
 
             Token::LeftParanthese => {
+                self.whitespace();
+
                 let left = self.expression(0)
                     .expect("unexpected token");
                     
