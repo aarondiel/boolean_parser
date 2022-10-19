@@ -48,6 +48,15 @@ impl<'a> Parser<'a> {
                 Node::Not(Box::new(right))
             },
 
+            Token::LeftParanthese => {
+                let left = self.expression(0)
+                    .expect("unexpected token");
+                    
+                assert_eq!(self.next(), Some(Token::RightParanthese));
+
+                left
+            }
+
             _ => panic!("unexpected token")
         };
 
@@ -59,8 +68,10 @@ impl<'a> Parser<'a> {
                 Some(operator) => operator
             };
 
-            let precedence = Self::get_operator_precedence(&operator)
-                .expect("unexpected token");
+            let precedence = match Self::get_operator_precedence(&operator) {
+                Some(precedence) => precedence,
+                None => break
+            };
 
             if precedence.0 < binding_power {
                 break;

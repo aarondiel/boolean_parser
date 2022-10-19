@@ -8,6 +8,8 @@ pub enum Token {
     Not,
     True,
     False,
+    LeftParanthese,
+    RightParanthese,
     Variable(String)
 }
 
@@ -18,6 +20,8 @@ struct Definitions {
     not: Regex,
     truthy: Regex,
     falsy: Regex,
+    left_parathese: Regex,
+    right_parathese: Regex,
     variable: Regex
 }
 
@@ -45,6 +49,12 @@ impl<'a> Tokenizer<'a> {
                 .expect("invalid truthy regex"),
 
             falsy: Regex::new(r"^(0|false)")
+                .expect("invalid falsy regex"),
+
+            left_parathese: Regex::new(r"^\(")
+                .expect("invalid falsy regex"),
+
+            right_parathese: Regex::new(r"^\)")
                 .expect("invalid falsy regex"),
 
             variable: Regex::new(r"^[^*∧+∨!¬\s]+")
@@ -84,6 +94,14 @@ impl Iterator for Tokenizer<'_> {
             .or(self.get_token(&self.definitions.truthy, Token::True))
             .or(self.get_token(&self.definitions.falsy, Token::False))
             .or(self.get_token(&self.definitions.falsy, Token::False))
+            .or(self.get_token(
+                &self.definitions.left_parathese,
+                Token::LeftParanthese
+            ))
+            .or(self.get_token(
+                &self.definitions.right_parathese,
+                Token::RightParanthese
+            ))
             .or(self.get_var())
             .and_then(|(length, token)| {
                 self.input = &self.input[length..];

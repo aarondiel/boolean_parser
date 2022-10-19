@@ -24,3 +24,102 @@ fn main() {
 
     println!("{result:?}");
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{parser::Parser, eval};
+
+    #[test]
+    fn creating_parser() {
+        let input = "true";
+        let _parser = Parser::new(input);
+    }
+
+    fn parse_and_eval(input: &str) -> Option<bool> {
+        let mut parser = Parser::new(input);
+        return parser.parse()
+            .and_then(|node| Some(eval(node)));
+    }
+
+    #[test]
+    fn test_bool() {
+        assert_eq!(parse_and_eval("1"), Some(true));
+        assert_eq!(parse_and_eval("true"), Some(true));
+
+        assert_eq!(parse_and_eval("0"), Some(false));
+        assert_eq!(parse_and_eval("false"), Some(false));
+    }
+
+    #[test]
+    fn test_and() {
+        assert_eq!(parse_and_eval("0 * 0"), Some(false));
+        assert_eq!(parse_and_eval("0 * 1"), Some(false));
+        assert_eq!(parse_and_eval("1 * 0"), Some(false));
+        assert_eq!(parse_and_eval("1 * 1"), Some(true));
+
+        assert_eq!(parse_and_eval("0 ∧ 0"), Some(false));
+        assert_eq!(parse_and_eval("0 ∧ 1"), Some(false));
+        assert_eq!(parse_and_eval("1 ∧ 0"), Some(false));
+        assert_eq!(parse_and_eval("1 ∧ 1"), Some(true));
+
+        assert_eq!(parse_and_eval("0 & 0"), Some(false));
+        assert_eq!(parse_and_eval("0 & 1"), Some(false));
+        assert_eq!(parse_and_eval("1 & 0"), Some(false));
+        assert_eq!(parse_and_eval("1 & 1"), Some(true));
+
+        assert_eq!(parse_and_eval("0 && 0"), Some(false));
+        assert_eq!(parse_and_eval("0 && 1"), Some(false));
+        assert_eq!(parse_and_eval("1 && 0"), Some(false));
+        assert_eq!(parse_and_eval("1 && 1"), Some(true));
+    }
+
+    #[test]
+    fn test_or() {
+        assert_eq!(parse_and_eval("0 + 0"), Some(false));
+        assert_eq!(parse_and_eval("0 + 1"), Some(true));
+        assert_eq!(parse_and_eval("1 + 0"), Some(true));
+        assert_eq!(parse_and_eval("1 + 1"), Some(true));
+
+        assert_eq!(parse_and_eval("0 ∨ 0"), Some(false));
+        assert_eq!(parse_and_eval("0 ∨ 1"), Some(true));
+        assert_eq!(parse_and_eval("1 ∨ 0"), Some(true));
+        assert_eq!(parse_and_eval("1 ∨ 1"), Some(true));
+
+        assert_eq!(parse_and_eval("0 | 0"), Some(false));
+        assert_eq!(parse_and_eval("0 | 1"), Some(true));
+        assert_eq!(parse_and_eval("1 | 0"), Some(true));
+        assert_eq!(parse_and_eval("1 | 1"), Some(true));
+
+        assert_eq!(parse_and_eval("0 || 0"), Some(false));
+        assert_eq!(parse_and_eval("0 || 1"), Some(true));
+        assert_eq!(parse_and_eval("1 || 0"), Some(true));
+        assert_eq!(parse_and_eval("1 || 1"), Some(true));
+    }
+
+    #[test]
+    fn test_not() {
+        assert_eq!(parse_and_eval("!true"), Some(false));
+        assert_eq!(parse_and_eval("!false"), Some(true));
+
+        assert_eq!(parse_and_eval("¬true"), Some(false));
+        assert_eq!(parse_and_eval("¬false"), Some(true));
+    }
+
+    #[test]
+    fn test_precedence() {
+        assert_eq!(parse_and_eval("1 + 0 * 1"), Some(true));
+        assert_eq!(parse_and_eval("0 * 1 + 1"), Some(true));
+
+        assert_eq!(parse_and_eval("!1 + 0 * 1"), Some(false));
+        assert_eq!(parse_and_eval("0 * 1 + !1"), Some(false));
+    }
+
+    #[test]
+    fn test_parenthese() {
+        assert_eq!(parse_and_eval("(1)"), Some(true));
+        assert_eq!(parse_and_eval("(0)"), Some(false));
+
+        assert_eq!(parse_and_eval("0 * (1 + 1)"), Some(false));
+        assert_eq!(parse_and_eval("(1 + 1) * 0"), Some(false));
+    }
+}
