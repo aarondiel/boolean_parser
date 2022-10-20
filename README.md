@@ -11,7 +11,7 @@ this is just meant as a practice and should not be concidered a serious project
 
 - [x] unicode characters for **'∧' '∨' '¬'**
 - [x] support for negation **'!', '¬'**
-- [ ] brackets **()**
+- [x] brackets **()**
 - [ ] variables
 
 boolean_algebra: https://en.wikipedia.org/wiki/Boolean_algebra
